@@ -1,5 +1,5 @@
-import { testProp, fc } from '@fast-check/jest';
-import Table from '@/Table';
+import { test, fc } from '@fast-check/jest';
+import Table from '#Table.js';
 
 describe(Table.name, () => {
   test('empty table should throw `RangeError`', () => {
@@ -65,243 +65,215 @@ describe(Table.name, () => {
     expect(rI1).toBe(rI1_);
     expect(rI2).toBe(rI2_);
   });
-  testProp(
-    'insert table rows',
-    [
-      fc.array(
-        fc.record({
-          a: fc.integer(),
-          b: fc.string(),
-          c: fc.boolean(),
-          d: fc.float(),
-        }),
-        { minLength: 1 },
-      ),
-      fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
-    ],
-    (rows, keysIndex) => {
-      const t = new Table(['a', 'b', 'c', 'd'], keysIndex);
-      const is = rows.map((r) => t.insertRow(r));
-      expect(is).toEqual([...Array(rows.length).keys()]);
-      expect([...t]).toEqual([...rows.entries()]);
-      expect(t.count).toBe(rows.length);
-    },
-  );
-  testProp(
-    'delete table rows',
-    [
-      fc.array(
-        fc.record({
-          a: fc.integer(),
-          b: fc.string(),
-          c: fc.boolean(),
-          d: fc.float(),
-        }),
-        { minLength: 1 },
-      ),
-      fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
-    ],
-    (rows, keysIndex) => {
-      const t = new Table(['a', 'b', 'c', 'd'], keysIndex);
-      const is = rows.map((r) => t.insertRow(r));
-      is.sort(() => Math.random() - 0.5);
-      for (const i of is) {
-        t.deleteRow(i);
-      }
-      expect(t.count).toBe(0);
-    },
-  );
-  testProp(
-    'update table rows',
-    [
-      fc.array(
-        fc.record({
-          a: fc.integer(),
-          b: fc.string(),
-          c: fc.boolean(),
-          d: fc.float(),
-        }),
-        { minLength: 1 },
-      ),
-      fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd'), { minLength: 1 }),
-      fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
-    ],
-    (rows, keys, keysIndex) => {
-      const t = new Table(['a', 'b', 'c', 'd'], keysIndex);
-      const is = rows.map((r) => t.insertRow(r));
-      is.sort(() => Math.random() - 0.5);
-      for (const i of is) {
-        const r = t.getRow(i)!;
-        const rNew = { ...r };
-        for (const k of keys) {
-          if (k === 'a') {
-            rNew.a = fc.sample(fc.integer(), 1)[0];
-          } else if (k === 'b') {
-            rNew.b = fc.sample(fc.string(), 1)[0];
-          } else if (k === 'c') {
-            rNew.c = fc.sample(fc.boolean(), 1)[0];
-          } else if (k === 'd') {
-            rNew.d = fc.sample(fc.float(), 1)[0];
-          }
-        }
-        t.setRow(i, rNew);
-        expect(t.getRow(i)).toEqual(rNew);
-      }
-    },
-  );
-  testProp(
-    'partial update table rows',
-    [
-      fc.array(
-        fc.record({
-          a: fc.integer(),
-          b: fc.string(),
-          c: fc.boolean(),
-          d: fc.float(),
-        }),
-        { minLength: 1 },
-      ),
-      fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd'), { minLength: 1 }),
-      fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
-    ],
-    (rows, keys, keysIndex) => {
-      const t = new Table(['a', 'b', 'c', 'd'], keysIndex);
-      const is = rows.map((r) => t.insertRow(r));
-      is.sort(() => Math.random() - 0.5);
-      for (const i of is) {
-        const r = t.getRow(i)!;
-        const rNew: {
-          a?: number;
-          b?: string;
-          c?: boolean;
-          d?: number;
-        } = {};
-        for (const k of keys) {
-          if (k === 'a') {
-            rNew.a = fc.sample(fc.integer(), 1)[0];
-          } else if (k === 'b') {
-            rNew.b = fc.sample(fc.string(), 1)[0];
-          } else if (k === 'c') {
-            rNew.c = fc.sample(fc.boolean(), 1)[0];
-          } else if (k === 'd') {
-            rNew.d = fc.sample(fc.float(), 1)[0];
-          }
-        }
-        t.updateRow(i, rNew);
-        expect(t.getRow(i)).toEqual({
-          ...r,
-          ...rNew,
-        });
-      }
-    },
-  );
-  testProp(
-    'get table rows by index',
-    [
-      fc.array(
-        fc.record({
-          a: fc.integer(),
-          b: fc.string(),
-          c: fc.boolean(),
-          d: fc.float(),
-        }),
-        { minLength: 1 },
-      ),
-      fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
-    ],
-    (rows, keysIndex) => {
-      const t = new Table(['a', 'b', 'c', 'd'], keysIndex);
-      rows.forEach((r) => t.insertRow(r));
-      // Use Math.random
-      const i = Math.floor(Math.random() * rows.length);
-      const row = rows[i];
-      for (const keyIndex of keysIndex) {
-        const i_ = t.whereRows(keyIndex, row[keyIndex]);
-        expect(i_).toContain(i);
-        for (const ii of i_) {
-          const r = t.getRow(ii)!;
-          expect(r[keyIndex]).toBe(row[keyIndex]);
+  test.prop([
+    fc.array(
+      fc.record({
+        a: fc.integer(),
+        b: fc.string(),
+        c: fc.boolean(),
+        d: fc.float(),
+      }),
+      { minLength: 1 },
+    ),
+    fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
+  ])('insert table rows', (rows, keysIndex) => {
+    const t = new Table(['a', 'b', 'c', 'd'], keysIndex);
+    const is = rows.map((r) => t.insertRow(r));
+    expect(is).toEqual([...Array(rows.length).keys()]);
+    expect([...t]).toEqual([...rows.entries()]);
+    expect(t.count).toBe(rows.length);
+  });
+  test.prop([
+    fc.array(
+      fc.record({
+        a: fc.integer(),
+        b: fc.string(),
+        c: fc.boolean(),
+        d: fc.float(),
+      }),
+      { minLength: 1 },
+    ),
+    fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
+  ])('delete table rows', (rows, keysIndex) => {
+    const t = new Table(['a', 'b', 'c', 'd'], keysIndex);
+    const is = rows.map((r) => t.insertRow(r));
+    is.sort(() => Math.random() - 0.5);
+    for (const i of is) {
+      t.deleteRow(i);
+    }
+    expect(t.count).toBe(0);
+  });
+  test.prop([
+    fc.array(
+      fc.record({
+        a: fc.integer(),
+        b: fc.string(),
+        c: fc.boolean(),
+        d: fc.float(),
+      }),
+      { minLength: 1 },
+    ),
+    fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd'), { minLength: 1 }),
+    fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
+  ])('update table rows', (rows, keys, keysIndex) => {
+    const t = new Table(['a', 'b', 'c', 'd'], keysIndex);
+    const is = rows.map((r) => t.insertRow(r));
+    is.sort(() => Math.random() - 0.5);
+    for (const i of is) {
+      const r = t.getRow(i)!;
+      const rNew = { ...r };
+      for (const k of keys) {
+        if (k === 'a') {
+          rNew.a = fc.sample(fc.integer(), 1)[0];
+        } else if (k === 'b') {
+          rNew.b = fc.sample(fc.string(), 1)[0];
+        } else if (k === 'c') {
+          rNew.c = fc.sample(fc.boolean(), 1)[0];
+        } else if (k === 'd') {
+          rNew.d = fc.sample(fc.float(), 1)[0];
         }
       }
-    },
-  );
-  testProp(
-    'get table rows by derived index',
-    [
-      fc.array(
-        fc.record({
-          a: fc.integer(),
-          b: fc.string(),
-          c: fc.boolean(),
-          d: fc.float(),
-        }),
-        { minLength: 1 },
-      ),
-      fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
-    ],
-    (rows, keysIndex) => {
-      const indexes = keysIndex.reduce((indexes, k) => {
-        return indexes.concat([[k, (v: any) => v.toString()]]);
-      }, [] as Array<any>);
-      const t = new Table(['a', 'b', 'c', 'd'], indexes);
-      rows.forEach((r) => t.insertRow(r));
-      const rI = Math.floor(Math.random() * rows.length);
-      const r = rows[rI];
-      for (const keyIndex of keysIndex) {
-        const rIs = t.whereRows(keyIndex, r[keyIndex]);
-        expect(rIs).toContain(rI);
-        for (const rI of rIs) {
-          const r_ = t.getRow(rI)!;
-          expect(r_).toBeDefined();
-          expect(r_[keyIndex]).toBe(r[keyIndex]);
+      t.setRow(i, rNew);
+      expect(t.getRow(i)).toEqual(rNew);
+    }
+  });
+  test.prop([
+    fc.array(
+      fc.record({
+        a: fc.integer(),
+        b: fc.string(),
+        c: fc.boolean(),
+        d: fc.float(),
+      }),
+      { minLength: 1 },
+    ),
+    fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd'), { minLength: 1 }),
+    fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
+  ])('partial update table rows', (rows, keys, keysIndex) => {
+    const t = new Table(['a', 'b', 'c', 'd'], keysIndex);
+    const is = rows.map((r) => t.insertRow(r));
+    is.sort(() => Math.random() - 0.5);
+    for (const i of is) {
+      const r = t.getRow(i)!;
+      const rNew: {
+        a?: number;
+        b?: string;
+        c?: boolean;
+        d?: number;
+      } = {};
+      for (const k of keys) {
+        if (k === 'a') {
+          rNew.a = fc.sample(fc.integer(), 1)[0];
+        } else if (k === 'b') {
+          rNew.b = fc.sample(fc.string(), 1)[0];
+        } else if (k === 'c') {
+          rNew.c = fc.sample(fc.boolean(), 1)[0];
+        } else if (k === 'd') {
+          rNew.d = fc.sample(fc.float(), 1)[0];
         }
       }
-    },
-  );
-  testProp(
-    'get table rows by compound index',
-    [
-      fc.array(
-        fc.record({
-          a: fc.integer(),
-          b: fc.string(),
-          c: fc.boolean(),
-          d: fc.float(),
-        }),
-        { minLength: 1 },
-      ),
-      fc.array(
-        fc.array(fc.constantFrom('a', 'b', 'c', 'd'), {
-          minLength: 1,
-          maxLength: 4,
-        }),
-        { minLength: 1 },
-      ),
-    ],
-    (rows, compoundIndexes) => {
-      const indexes = compoundIndexes.reduce((indexes, k) => {
-        return indexes.concat([
-          [k, (...vs: Array<any>) => vs.map((v) => v.toString()).join('')],
-        ]);
-      }, [] as Array<any>);
-      const t = new Table(['a', 'b', 'c', 'd'], indexes);
-      rows.forEach((r) => t.insertRow(r));
-      const rI = Math.floor(Math.random() * rows.length);
-      const r = rows[rI];
-      for (const compoundIndex of compoundIndexes) {
-        const rIs = t.whereRows(
-          compoundIndex,
+      t.updateRow(i, rNew);
+      expect(t.getRow(i)).toEqual({
+        ...r,
+        ...rNew,
+      });
+    }
+  });
+  test.prop([
+    fc.array(
+      fc.record({
+        a: fc.integer(),
+        b: fc.string(),
+        c: fc.boolean(),
+        d: fc.float(),
+      }),
+      { minLength: 1 },
+    ),
+    fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
+  ])('get table rows by index', (rows, keysIndex) => {
+    const t = new Table(['a', 'b', 'c', 'd'], keysIndex);
+    rows.forEach((r) => t.insertRow(r));
+    // Use Math.random
+    const i = Math.floor(Math.random() * rows.length);
+    const row = rows[i];
+    for (const keyIndex of keysIndex) {
+      const i_ = t.whereRows(keyIndex, row[keyIndex]);
+      expect(i_).toContain(i);
+      for (const ii of i_) {
+        const r = t.getRow(ii)!;
+        expect(r[keyIndex]).toBe(row[keyIndex]);
+      }
+    }
+  });
+  test.prop([
+    fc.array(
+      fc.record({
+        a: fc.integer(),
+        b: fc.string(),
+        c: fc.boolean(),
+        d: fc.float(),
+      }),
+      { minLength: 1 },
+    ),
+    fc.uniqueArray(fc.constantFrom('a', 'b', 'c', 'd')),
+  ])('get table rows by derived index', (rows, keysIndex) => {
+    const indexes = keysIndex.reduce((indexes, k) => {
+      return indexes.concat([[k, (v: any) => v.toString()]]);
+    }, [] as Array<any>);
+    const t = new Table(['a', 'b', 'c', 'd'], indexes);
+    rows.forEach((r) => t.insertRow(r));
+    const rI = Math.floor(Math.random() * rows.length);
+    const r = rows[rI];
+    for (const keyIndex of keysIndex) {
+      const rIs = t.whereRows(keyIndex, r[keyIndex]);
+      expect(rIs).toContain(rI);
+      for (const rI of rIs) {
+        const r_ = t.getRow(rI)!;
+        expect(r_).toBeDefined();
+        expect(r_[keyIndex]).toBe(r[keyIndex]);
+      }
+    }
+  });
+  test.prop([
+    fc.array(
+      fc.record({
+        a: fc.integer(),
+        b: fc.string(),
+        c: fc.boolean(),
+        d: fc.float(),
+      }),
+      { minLength: 1 },
+    ),
+    fc.array(
+      fc.array(fc.constantFrom('a', 'b', 'c', 'd'), {
+        minLength: 1,
+        maxLength: 4,
+      }),
+      { minLength: 1 },
+    ),
+  ])('get table rows by compound index', (rows, compoundIndexes) => {
+    const indexes = compoundIndexes.reduce((indexes, k) => {
+      return indexes.concat([
+        [k, (...vs: Array<any>) => vs.map((v) => v.toString()).join('')],
+      ]);
+    }, [] as Array<any>);
+    const t = new Table(['a', 'b', 'c', 'd'], indexes);
+    rows.forEach((r) => t.insertRow(r));
+    const rI = Math.floor(Math.random() * rows.length);
+    const r = rows[rI];
+    for (const compoundIndex of compoundIndexes) {
+      const rIs = t.whereRows(
+        compoundIndex,
+        compoundIndex.map((k) => r[k]),
+      );
+      expect(rIs).toContain(rI);
+      for (const rI of rIs) {
+        const r_ = t.getRow(rI)!;
+        expect(r_).toBeDefined();
+        expect(compoundIndex.map((k) => r_[k])).toEqual(
           compoundIndex.map((k) => r[k]),
         );
-        expect(rIs).toContain(rI);
-        for (const rI of rIs) {
-          const r_ = t.getRow(rI)!;
-          expect(r_).toBeDefined();
-          expect(compoundIndex.map((k) => r_[k])).toEqual(
-            compoundIndex.map((k) => r[k]),
-          );
-        }
       }
-    },
-  );
+    }
+  });
 });

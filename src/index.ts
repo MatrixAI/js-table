@@ -1,2 +1,2 @@
-export { default } from './Table';
-export * from './utils';
+export { default } from './Table.js';
+export * from './utils.js';
