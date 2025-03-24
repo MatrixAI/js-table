@@ -1,5 +1,7 @@
-import Counter from 'resource-counter';
-import * as utils from './utils';
+import resourceCounter from 'resource-counter';
+import * as utils from './utils.js';
+
+const { default: Counter } = resourceCounter;
 
 class Table<R extends Record<string, any>> {
   public readonly keys: Set<keyof R>;

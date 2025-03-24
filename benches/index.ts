@@ -1,29 +1,33 @@
 #!/usr/bin/env ts-node
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
+import url from 'node:url';
 import si from 'systeminformation';
-import tableNotIndexed from './table_not_indexed';
-import tableIndexed from './table_indexed';
-import tableDerived from './table_derived';
+import { benchesPath } from './utils.js';
+import tableNotIndexed from './table_not_indexed.js';
+import tableIndexed from './table_indexed.js';
+import tableDerived from './table_derived.js';
 
 async function main(): Promise<void> {
-  await fs.promises.mkdir(path.join(__dirname, 'results'), { recursive: true });
+  await fs.promises.mkdir(path.join(benchesPath, 'results'), {
+    recursive: true,
+  });
   await tableNotIndexed();
   await tableIndexed();
   await tableDerived();
   const resultFilenames = await fs.promises.readdir(
-    path.join(__dirname, 'results'),
+    path.join(benchesPath, 'results'),
   );
   const metricsFile = await fs.promises.open(
-    path.join(__dirname, 'results', 'metrics.txt'),
+    path.join(benchesPath, 'results', 'metrics.txt'),
     'w',
   );
   let concatenating = false;
   for (const resultFilename of resultFilenames) {
     if (/.+_metrics\.txt$/.test(resultFilename)) {
       const metricsData = await fs.promises.readFile(
-        path.join(__dirname, 'results', resultFilename),
+        path.join(benchesPath, 'results', resultFilename),
       );
       if (concatenating) {
         await metricsFile.write('\n');
@@ -39,9 +43,16 @@ async function main(): Promise<void> {
     system: 'model, manufacturer',
   });
   await fs.promises.writeFile(
-    path.join(__dirname, 'results', 'system.json'),
+    path.join(benchesPath, 'results', 'system.json'),
     JSON.stringify(systemData, null, 2),
   );
 }
 
-void main();
+if (import.meta.url.startsWith('file:')) {
+  const modulePath = url.fileURLToPath(import.meta.url);
+  if (process.argv[1] === modulePath) {
+    void main();
+  }
+}
+
+export default main;

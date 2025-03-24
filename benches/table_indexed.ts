@@ -1,11 +1,14 @@
-import path from 'path';
+import path from 'node:path';
+import url from 'node:url';
 import b from 'benny';
-import Table from '@';
-import { suiteCommon } from './utils';
+import { suiteCommon } from './utils.js';
+import Table from '#Table.js';
+
+const filePath = url.fileURLToPath(import.meta.url);
 
 async function main() {
   const summary = await b.suite(
-    path.basename(__filename, path.extname(__filename)),
+    path.basename(filePath, path.extname(filePath)),
     b.add('insert', () => {
       const t = new Table(['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd']);
       return () => {
@@ -34,8 +37,11 @@ async function main() {
   return summary;
 }
 
-if (require.main === module) {
-  void main();
+if (import.meta.url.startsWith('file:')) {
+  const modulePath = url.fileURLToPath(import.meta.url);
+  if (process.argv[1] === modulePath) {
+    void main();
+  }
 }
 
 export default main;
